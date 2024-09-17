@@ -37,12 +37,12 @@ public final class TransactionLogConfig {
     public static final String TRANSACTIONS_TOPIC_SEGMENT_BYTES_DOC = "The transaction topic segment bytes should be kept relatively small in order to facilitate faster log compaction and cache loads";
 
     public static final String TRANSACTIONS_TOPIC_REPLICATION_FACTOR_CONFIG = "transaction.state.log.replication.factor";
-    public static final short TRANSACTIONS_TOPIC_REPLICATION_FACTOR_DEFAULT = 3;
+    public static final short TRANSACTIONS_TOPIC_REPLICATION_FACTOR_DEFAULT = 1;
     public static final String TRANSACTIONS_TOPIC_REPLICATION_FACTOR_DOC = "The replication factor for the transaction topic (set higher to ensure availability). " +
             "Internal topic creation will fail until the cluster size meets this replication factor requirement.";
 
     public static final String TRANSACTIONS_TOPIC_MIN_ISR_CONFIG = "transaction.state.log.min.isr";
-    public static final int TRANSACTIONS_TOPIC_MIN_ISR_DEFAULT = 2;
+    public static final int TRANSACTIONS_TOPIC_MIN_ISR_DEFAULT = 1;
     public static final String TRANSACTIONS_TOPIC_MIN_ISR_DOC = "The minimum number of replicas that must acknowledge a write to transaction topic in order to be considered successful.";
 
     public static final String TRANSACTIONS_LOAD_BUFFER_SIZE_CONFIG = "transaction.state.log.load.buffer.size";

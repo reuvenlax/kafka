@@ -25,10 +25,10 @@ import org.apache.kafka.common.KafkaException;
  * do not have any segments with offset overflow.
  */
 public class LogSegmentOffsetOverflowException extends KafkaException {
-    public final LogSegment segment;
+    public final VortexLogSegment segment;
     public final long offset;
 
-    public LogSegmentOffsetOverflowException(LogSegment segment, long offset) {
+    public LogSegmentOffsetOverflowException(VortexLogSegment segment, long offset) {
         super("Detected offset overflow at offset " + offset + " in segment " + segment);
         this.segment = segment;
         this.offset = offset;

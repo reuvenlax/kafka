@@ -204,7 +204,7 @@ public final class QuorumController implements Controller {
         private KafkaConfigSchema configSchema = KafkaConfigSchema.EMPTY;
         private RaftClient<ApiMessageAndVersion> raftClient = null;
         private QuorumFeatures quorumFeatures = null;
-        private short defaultReplicationFactor = 3;
+        private short defaultReplicationFactor = 1;
         private int defaultNumPartitions = 1;
         private ReplicaPlacer replicaPlacer = new StripedReplicaPlacer(new Random());
         private OptionalLong leaderImbalanceCheckIntervalNs = OptionalLong.empty();

@@ -25,9 +25,9 @@ import kafka.common._
 import kafka.log.LogCleaner.{CleanerRecopyPercentMetricName, DeadThreadCountMetricName, MaxBufferUtilizationPercentMetricName, MaxCleanTimeMetricName, MaxCompactionDelayMetricsName}
 import kafka.server.{BrokerReconfigurable, KafkaConfig}
 import kafka.utils.{Logging, Pool}
-import org.apache.kafka.common.{KafkaException, TopicPartition}
+import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.config.ConfigException
-import org.apache.kafka.common.errors.{CorruptRecordException, KafkaStorageException}
+import org.apache.kafka.common.errors.KafkaStorageException
 import org.apache.kafka.common.record.MemoryRecords.RecordFilter
 import org.apache.kafka.common.record.MemoryRecords.RecordFilter.BatchRetention
 import org.apache.kafka.common.record._
@@ -35,10 +35,10 @@ import org.apache.kafka.common.utils.{BufferSupplier, Time}
 import org.apache.kafka.server.config.ServerConfigs
 import org.apache.kafka.server.metrics.KafkaMetricsGroup
 import org.apache.kafka.server.util.ShutdownableThread
-import org.apache.kafka.storage.internals.log.{AbortedTxn, CleanerConfig, LastRecord, LogDirFailureChannel, LogSegment, LogSegmentOffsetOverflowException, OffsetMap, SkimpyOffsetMap, TransactionIndex}
+import org.apache.kafka.storage.internals.log.{AbortedTxn, CleanerConfig, LastRecord, LogDirFailureChannel, LogSegmentOffsetOverflowException, OffsetMap, SkimpyOffsetMap, TransactionIndex, VortexLogSegment}
 import org.apache.kafka.storage.internals.utils.Throttler
 
-import scala.jdk.CollectionConverters._
+// import scala.jdk.CollectionConverters._
 import scala.collection.mutable.ListBuffer
 import scala.collection.{Iterable, Seq, Set, mutable}
 import scala.util.control.ControlThrowable
@@ -648,7 +648,7 @@ private[log] class Cleaner(val id: Int,
    * @param upperBoundOffsetOfCleaningRound The upper bound offset of this round of cleaning
    */
   private[log] def cleanSegments(log: UnifiedLog,
-                                 segments: Seq[LogSegment],
+                                 segments: Seq[VortexLogSegment],
                                  map: OffsetMap,
                                  currentTime: Long,
                                  stats: CleanerStats,
@@ -656,13 +656,13 @@ private[log] class Cleaner(val id: Int,
                                  legacyDeleteHorizonMs: Long,
                                  upperBoundOffsetOfCleaningRound: Long): Unit = {
     // create a new segment with a suffix appended to the name of the log and indexes
-    val cleaned = UnifiedLog.createNewCleanedSegment(log.dir, log.config, segments.head.baseOffset)
+    val cleaned = UnifiedLog.createNewCleanedSegment(log.localLog, log.dir, log.config, segments.head.baseOffset, log.time)
     transactionMetadata.cleanedIndex = Some(cleaned.txnIndex)
 
     try {
       // clean segments into the new destination segment
       val iter = segments.iterator
-      var currentSegmentOpt: Option[LogSegment] = Some(iter.next())
+      var currentSegmentOpt: Option[VortexLogSegment] = Some(iter.next())
       val lastOffsetOfActiveProducers = log.lastRecordsOfActiveProducers
 
       while (currentSegmentOpt.isDefined) {
@@ -735,8 +735,8 @@ private[log] class Cleaner(val id: Int,
    * @param currentTime The time at which the clean was initiated
    */
   private[log] def cleanInto(topicPartition: TopicPartition,
-                             sourceRecords: FileRecords,
-                             dest: LogSegment,
+                             sourceRecords: VortexLogSegment#FileRecords,
+                             dest: VortexLogSegment,
                              map: OffsetMap,
                              retainLegacyDeletesAndTxnMarkers: Boolean,
                              deleteRetentionMs: Long,
@@ -830,8 +830,8 @@ private[log] class Cleaner(val id: Int,
 
       // if we read bytes but didn't get even one complete batch, our I/O buffer is too small, grow it and try again
       // `result.bytesRead` contains bytes from `messagesRead` and any discarded batches.
-      if (readBuffer.limit() > 0 && result.bytesRead == 0)
-        growBuffersOrFail(sourceRecords, position, maxLogMessageSize, records)
+     // if (readBuffer.limit() > 0 && result.bytesRead == 0)
+     //   growBuffersOrFail(sourceRecords, position, maxLogMessageSize, records)
     }
     restoreBuffers()
   }
@@ -850,6 +850,7 @@ private[log] class Cleaner(val id: Int,
    * @param maxLogMessageSize The maximum record size in bytes for the topic
    * @param memoryRecords The memory records in read buffer
    */
+    /*
   private def growBuffersOrFail(sourceRecords: FileRecords,
                                 position: Int,
                                 maxLogMessageSize: Int,
@@ -874,6 +875,8 @@ private[log] class Cleaner(val id: Int,
     growBuffers(maxSize)
   }
 
+
+     */
   /**
    * Check if a batch should be discard by cleaned transaction state
    *
@@ -941,6 +944,7 @@ private[log] class Cleaner(val id: Int,
    *
    * @param maxLogMessageSize The maximum record size in bytes allowed
    */
+    /*
   private def growBuffers(maxLogMessageSize: Int): Unit = {
     val maxBufferSize = math.max(maxLogMessageSize, maxIoBufferSize)
     if (readBuffer.capacity >= maxBufferSize || writeBuffer.capacity >= maxBufferSize)
@@ -950,6 +954,8 @@ private[log] class Cleaner(val id: Int,
     this.readBuffer = ByteBuffer.allocate(newSize)
     this.writeBuffer = ByteBuffer.allocate(newSize)
   }
+
+     */
 
   /**
    * Restore the I/O buffer capacity to its original size
@@ -973,8 +979,8 @@ private[log] class Cleaner(val id: Int,
    *
    * @return A list of grouped segments
    */
-  private[log] def groupSegmentsBySize(segments: Iterable[LogSegment], maxSize: Int, maxIndexSize: Int, firstUncleanableOffset: Long): List[Seq[LogSegment]] = {
-    var grouped = List[List[LogSegment]]()
+  private[log] def groupSegmentsBySize(segments: Iterable[VortexLogSegment], maxSize: Int, maxIndexSize: Int, firstUncleanableOffset: Long): List[Seq[VortexLogSegment]] = {
+    var grouped = List[List[VortexLogSegment]]()
     var segs = segments.toList
     while (segs.nonEmpty) {
       var group = List(segs.head)
@@ -1013,7 +1019,8 @@ private[log] class Cleaner(val id: Int,
    *  @param firstUncleanableOffset The upper(exclusive) offset to clean to
     * @return The estimated last offset for the first segment in segs
     */
-  private def lastOffsetForFirstSegment(segs: List[LogSegment], firstUncleanableOffset: Long): Long = {
+
+  private def lastOffsetForFirstSegment(segs: List[VortexLogSegment], firstUncleanableOffset: Long): Long = {
     if (segs.size > 1) {
       /* if there is a next segment, use its base offset as the bounding offset to guarantee we know
        * the worst case offset */
@@ -1079,20 +1086,21 @@ private[log] class Cleaner(val id: Int,
    * @return If the map was filled whilst loading from this segment
    */
   private def buildOffsetMapForSegment(topicPartition: TopicPartition,
-                                       segment: LogSegment,
+                                       segment: VortexLogSegment,
                                        map: OffsetMap,
                                        startOffset: Long,
                                        nextSegmentStartOffset: Long,
                                        maxLogMessageSize: Int,
                                        transactionMetadata: CleanedTransactionMetadata,
                                        stats: CleanerStats): Boolean = {
-    var position = segment.offsetIndex.lookup(startOffset).position
-    val maxDesiredMapSize = (map.slots * this.dupBufferLoadFactor).toInt
+   // var position = segment.offsetIndex.lookup(startOffset).position
+   // val maxDesiredMapSize = (map.slots * this.dupBufferLoadFactor).toInt
+    /*
     while (position < segment.log.sizeInBytes) {
       checkDone(topicPartition)
       readBuffer.clear()
       try {
-        segment.log.readInto(readBuffer, position)
+     //   segment.log.readInto(readBuffer, position)
       } catch {
         case e: Exception =>
           throw new KafkaException(s"Failed to read from segment $segment of partition $topicPartition " +
@@ -1136,9 +1144,10 @@ private[log] class Cleaner(val id: Int,
       stats.indexBytesRead(bytesRead)
 
       // if we didn't read even one complete message, our read buffer may be too small
-      if (position == startPosition)
-        growBuffersOrFail(segment.log, position, maxLogMessageSize, records)
+    //  if (position == startPosition)
+    //    growBuffersOrFail(segment.log, position, maxLogMessageSize, records)
     }
+*/
 
     // In the case of offsets gap, fast forward to latest expected offset in this segment.
     map.updateLatestOffset(nextSegmentStartOffset - 1L)

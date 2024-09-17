@@ -267,12 +267,15 @@ abstract class BaseProducerSendTest extends KafkaServerTestHarness {
         topicProps.setProperty(TopicConfig.MESSAGE_TIMESTAMP_TYPE_CONFIG, "CreateTime")
       TestUtils.createTopicWithAdmin(admin, topic, brokers, controllerServers, 1, 2, topicConfig = topicProps)
 
+      System.err.println("HERE0")
       val recordAndFutures = for (i <- 1 to numRecords) yield {
         val record = new ProducerRecord(topic, partition, baseTimestamp + i, s"key$i".getBytes(StandardCharsets.UTF_8),
           s"value$i".getBytes(StandardCharsets.UTF_8))
         (record, producer.send(record, callback))
       }
+      System.err.println("HERE1")
       producer.close(Duration.ofSeconds(20L))
+      System.err.println("HERE2")
       recordAndFutures.foreach { case (record, future) =>
         val recordMetadata = future.get
         if (timestampType == TimestampType.LOG_APPEND_TIME)
@@ -280,9 +283,13 @@ abstract class BaseProducerSendTest extends KafkaServerTestHarness {
         else
           assertEquals(record.timestamp, recordMetadata.timestamp)
       }
+      System.err.println("HERE3")
       assertEquals(numRecords, callback.offset, s"Should have offset $numRecords but only successfully sent ${callback.offset}")
+      System.err.println("HERE4")
     } finally {
+      System.err.println("CLOSING PRODUCER")
       producer.close()
+      System.err.println("CLOSED PRODUCER")
     }
   }
 

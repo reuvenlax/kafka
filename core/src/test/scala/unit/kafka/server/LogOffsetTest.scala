@@ -25,7 +25,7 @@ import org.apache.kafka.common.protocol.{ApiKeys, Errors}
 import org.apache.kafka.common.requests.{FetchRequest, FetchResponse, ListOffsetsRequest, ListOffsetsResponse}
 import org.apache.kafka.common.utils.Time
 import org.apache.kafka.common.{IsolationLevel, TopicPartition}
-import org.apache.kafka.storage.internals.log.{LogSegment, LogStartOffsetIncrementReason}
+import org.apache.kafka.storage.internals.log.{LogStartOffsetIncrementReason, VortexLogSegment}
 import org.junit.jupiter.api.Assertions._
 import org.junit.jupiter.api.Timeout
 import org.junit.jupiter.params.ParameterizedTest
@@ -267,7 +267,7 @@ class LogOffsetTest extends BaseRequestTest {
   @ValueSource(strings = Array("zk", "kraft"))
   def testFetchOffsetsBeforeWithChangingSegmentSize(quorum: String): Unit = {
     val log: UnifiedLog = mock(classOf[UnifiedLog])
-    val logSegment: LogSegment = mock(classOf[LogSegment])
+    val logSegment: VortexLogSegment = mock(classOf[VortexLogSegment])
     when(logSegment.size).thenAnswer(new Answer[Int] {
       private[this] val value = new AtomicInteger(0)
       override def answer(invocation: InvocationOnMock): Int = value.getAndIncrement()
@@ -283,9 +283,9 @@ class LogOffsetTest extends BaseRequestTest {
   @ValueSource(strings = Array("zk", "kraft"))
   def testFetchOffsetsBeforeWithChangingSegments(quorum: String): Unit = {
     val log: UnifiedLog = mock(classOf[UnifiedLog])
-    val logSegment: LogSegment = mock(classOf[LogSegment])
+    val logSegment: VortexLogSegment = mock(classOf[VortexLogSegment])
     when(log.logSegments).thenReturn(
-      new util.AbstractCollection[LogSegment] {
+      new util.AbstractCollection[VortexLogSegment] {
         override def size = 2
         override def iterator = asList(logSegment).iterator
       }

@@ -45,6 +45,10 @@
     <allow pkg="org.apache.kafka.common.errors" exact-match="true" />
     <allow pkg="org.apache.kafka.common.memory" />
 
+    <allow pkg="com.google.cloud.bigquery.storage.v1" />
+    <allow pkg="com.google.api.core" />
+    <allow pkg="com.google.protobuf" />
+
 
     <subpackage name="server">
         <allow pkg="org.apache.kafka.common" />

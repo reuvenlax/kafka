@@ -156,7 +156,7 @@ public class ReplicationControlManager {
     static class Builder {
         private SnapshotRegistry snapshotRegistry = null;
         private LogContext logContext = null;
-        private short defaultReplicationFactor = (short) 3;
+        private short defaultReplicationFactor = (short) 1;
         private int defaultNumPartitions = 1;
 
         private int maxElectionsPerImbalance = MAX_ELECTIONS_PER_IMBALANCE;
@@ -730,8 +730,9 @@ public class ReplicationControlManager {
         } else {
             int numPartitions = topic.numPartitions() == -1 ?
                 defaultNumPartitions : topic.numPartitions();
-            short replicationFactor = topic.replicationFactor() == -1 ?
-                defaultReplicationFactor : topic.replicationFactor();
+        //    short replicationFactor = topic.replicationFactor() == -1 ?
+         //       defaultReplicationFactor : topic.replicationFactor();
+            short replicationFactor = 1; // For BigQuery integration, replication isn't needed.
             try {
                 TopicAssignment topicAssignment = clusterControl.replicaPlacer().place(new PlacementSpec(
                     0,
@@ -1789,7 +1790,8 @@ public class ReplicationControlManager {
                 partitionInfo.replicas.length + ": expected a number equal to less than " +
                 Short.MAX_VALUE);
         }
-        short replicationFactor = (short) partitionInfo.replicas.length;
+    //   short replicationFactor = (short) partitionInfo.replicas.length;
+        short replicationFactor = 1;
         int startPartitionId = topicInfo.parts.size();
 
         List<PartitionAssignment> partitionAssignments;
@@ -1846,6 +1848,10 @@ public class ReplicationControlManager {
         if (assignment.replicas().isEmpty()) {
             throw new InvalidReplicaAssignmentException("The manual partition " +
                 "assignment includes an empty replica list.");
+        }
+        if (assignment.replicas().size() > 1) {
+            // TODO(Vortex): Maybe just keep the first replica and ignore the rest?
+            throw new InvalidReplicationFactorException("When using BigQuery, replication factor should be set to 1.");
         }
         List<Integer> sortedBrokerIds = new ArrayList<>(assignment.replicas());
         sortedBrokerIds.sort(Integer::compare);

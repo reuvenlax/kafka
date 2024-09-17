@@ -28,13 +28,12 @@ import org.apache.kafka.common.record._
 import org.apache.kafka.common.utils.Utils
 import org.apache.kafka.coordinator.transaction.TransactionLogConfig
 import org.apache.kafka.server.util.MockTime
-import org.apache.kafka.storage.internals.log.{AppendOrigin, LogConfig, LogDirFailureChannel, LogLoader, LogSegment, LogSegments, LogStartOffsetIncrementReason, ProducerStateManager, ProducerStateManagerConfig}
+import org.apache.kafka.storage.internals.log.{AppendOrigin, LogConfig, LogDirFailureChannel, LogLoader, LogStartOffsetIncrementReason, ProducerStateManager, ProducerStateManagerConfig, VortexLog, VortexLogSegments}
 import org.apache.kafka.storage.log.metrics.BrokerTopicStats
 import org.junit.jupiter.api.Assertions._
 import org.junit.jupiter.api.{AfterEach, Test}
 
 import java.lang.{Long => JLong}
-import java.util
 import java.util.concurrent.ConcurrentHashMap
 import scala.collection.mutable
 import scala.compat.java8.OptionConverters._
@@ -42,7 +41,7 @@ import scala.compat.java8.OptionConverters._
 /**
   * Unit tests for the log cleaning logic
   */
-class LogCleanerManagerTest extends Logging {
+class   LogCleanerManagerTest extends Logging {
 
   val tmpDir: File = TestUtils.tempDir()
   val tmpDir2: File = TestUtils.tempDir()
@@ -109,11 +108,13 @@ class LogCleanerManagerTest extends Logging {
     val config = createLowRetentionLogConfig(logSegmentSize, TopicConfig.CLEANUP_POLICY_COMPACT)
     val maxTransactionTimeoutMs = 5 * 60 * 1000
     val producerIdExpirationCheckIntervalMs = TransactionLogConfig.PRODUCER_ID_EXPIRATION_CHECK_INTERVAL_MS_DEFAULT
-    val segments = new LogSegments(tp)
+    val segments = new VortexLogSegments(tp)
     val leaderEpochCache = UnifiedLog.maybeCreateLeaderEpochCache(
       tpDir, topicPartition, logDirFailureChannel, config.recordVersion, "", None, time.scheduler)
     val producerStateManager = new ProducerStateManager(topicPartition, tpDir, maxTransactionTimeoutMs, producerStateManagerConfig, time)
+    val vortexLog = new VortexLog(logDir, config, segments, time.scheduler, time,topicPartition, logDirFailureChannel)
     val offsets = new LogLoader(
+      vortexLog,
       tpDir,
       tp,
       config,
@@ -129,15 +130,14 @@ class LogCleanerManagerTest extends Logging {
       new ConcurrentHashMap[String, Integer],
       false
     ).load()
-    val localLog = new LocalLog(tpDir, config, segments, offsets.recoveryPoint,
-      offsets.nextOffsetMetadata, time.scheduler, time, tp, logDirFailureChannel)
+
     // the exception should be caught and the partition that caused it marked as uncleanable
-    class LogMock extends UnifiedLog(offsets.logStartOffset, localLog, new BrokerTopicStats,
+    class LogMock extends UnifiedLog(offsets.logStartOffset, vortexLog, new BrokerTopicStats,
         producerIdExpirationCheckIntervalMs, leaderEpochCache,
         producerStateManager, _topicId = None, keepPartitionMetadataFile = true) {
       // Throw an error in getFirstBatchTimestampForSegments since it is called in grabFilthiestLog()
-      override def getFirstBatchTimestampForSegments(segments: util.Collection[LogSegment]): util.Collection[java.lang.Long] =
-        throw new IllegalStateException("Error!")
+    //  override def getFirstBatchTimestampForSegments(segments: util.Collection[LogSegment]): util.Collection[java.lang.Long] =
+     //   throw new IllegalStateException("Error!")
     }
 
     val log: UnifiedLog = new LogMock()

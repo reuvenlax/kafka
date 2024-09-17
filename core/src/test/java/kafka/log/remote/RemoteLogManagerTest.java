@@ -70,12 +70,12 @@ import org.apache.kafka.storage.internals.log.LazyIndex;
 import org.apache.kafka.storage.internals.log.LogConfig;
 import org.apache.kafka.storage.internals.log.LogDirFailureChannel;
 import org.apache.kafka.storage.internals.log.LogFileUtils;
-import org.apache.kafka.storage.internals.log.LogSegment;
 import org.apache.kafka.storage.internals.log.OffsetIndex;
 import org.apache.kafka.storage.internals.log.ProducerStateManager;
 import org.apache.kafka.storage.internals.log.RemoteStorageFetchInfo;
 import org.apache.kafka.storage.internals.log.TimeIndex;
 import org.apache.kafka.storage.internals.log.TransactionIndex;
+import org.apache.kafka.storage.internals.log.VortexLogSegment;
 import org.apache.kafka.storage.log.metrics.BrokerTopicStats;
 import org.apache.kafka.test.TestUtils;
 
@@ -502,15 +502,15 @@ public class RemoteLogManagerTest {
         File mockProducerSnapshotIndex = TestUtils.tempFile();
         File tempDir = TestUtils.tempDirectory();
         // create 2 log segments, with 0 and 150 as log start offset
-        LogSegment oldSegment = mock(LogSegment.class);
-        LogSegment activeSegment = mock(LogSegment.class);
+        VortexLogSegment oldSegment = mock(VortexLogSegment.class);
+        VortexLogSegment activeSegment = mock(VortexLogSegment.class);
 
         when(oldSegment.baseOffset()).thenReturn(oldSegmentStartOffset);
         when(activeSegment.baseOffset()).thenReturn(nextSegmentStartOffset);
         verify(oldSegment, times(0)).readNextOffset();
         verify(activeSegment, times(0)).readNextOffset();
 
-        FileRecords fileRecords = mock(FileRecords.class);
+        VortexLogSegment.FileRecords fileRecords = mock(VortexLogSegment.FileRecords.class);
         when(oldSegment.log()).thenReturn(fileRecords);
         when(fileRecords.file()).thenReturn(tempFile);
         when(fileRecords.sizeInBytes()).thenReturn(10);
@@ -616,15 +616,15 @@ public class RemoteLogManagerTest {
         File mockProducerSnapshotIndex = TestUtils.tempFile();
         File tempDir = TestUtils.tempDirectory();
         // create 2 log segments, with 0 and 150 as log start offset
-        LogSegment oldSegment = mock(LogSegment.class);
-        LogSegment activeSegment = mock(LogSegment.class);
+        VortexLogSegment oldSegment = mock(VortexLogSegment.class);
+        VortexLogSegment activeSegment = mock(VortexLogSegment.class);
 
         when(oldSegment.baseOffset()).thenReturn(oldSegmentStartOffset);
         when(activeSegment.baseOffset()).thenReturn(nextSegmentStartOffset);
         verify(oldSegment, times(0)).readNextOffset();
         verify(activeSegment, times(0)).readNextOffset();
 
-        FileRecords fileRecords = mock(FileRecords.class);
+        VortexLogSegment.FileRecords fileRecords = mock(VortexLogSegment.FileRecords.class);
         when(oldSegment.log()).thenReturn(fileRecords);
         when(fileRecords.file()).thenReturn(tempFile);
         when(fileRecords.sizeInBytes()).thenReturn(10);
@@ -707,15 +707,15 @@ public class RemoteLogManagerTest {
         File mockProducerSnapshotIndex = TestUtils.tempFile();
         File tempDir = TestUtils.tempDirectory();
         // create 2 log segments, with 0 and 150 as log start offset
-        LogSegment oldSegment = mock(LogSegment.class);
-        LogSegment activeSegment = mock(LogSegment.class);
+        VortexLogSegment oldSegment = mock(VortexLogSegment.class);
+        VortexLogSegment activeSegment = mock(VortexLogSegment.class);
 
         when(oldSegment.baseOffset()).thenReturn(oldSegmentStartOffset);
         when(activeSegment.baseOffset()).thenReturn(nextSegmentStartOffset);
         verify(oldSegment, times(0)).readNextOffset();
         verify(activeSegment, times(0)).readNextOffset();
 
-        FileRecords fileRecords = mock(FileRecords.class);
+        VortexLogSegment.FileRecords fileRecords = mock(VortexLogSegment.FileRecords.class);
         when(oldSegment.log()).thenReturn(fileRecords);
         when(fileRecords.file()).thenReturn(tempFile);
         when(fileRecords.sizeInBytes()).thenReturn(10);
@@ -796,13 +796,13 @@ public class RemoteLogManagerTest {
         File mockProducerSnapshotIndex = TestUtils.tempFile();
         File tempDir = TestUtils.tempDirectory();
         // create 2 log segments, with 0 and 150 as log start offset
-        LogSegment oldSegment = mock(LogSegment.class);
-        LogSegment activeSegment = mock(LogSegment.class);
+        VortexLogSegment oldSegment = mock(VortexLogSegment.class);
+        VortexLogSegment activeSegment = mock(VortexLogSegment.class);
 
         when(oldSegment.baseOffset()).thenReturn(oldSegmentStartOffset);
         when(activeSegment.baseOffset()).thenReturn(nextSegmentStartOffset);
 
-        FileRecords fileRecords = mock(FileRecords.class);
+        VortexLogSegment.FileRecords fileRecords = mock(VortexLogSegment.FileRecords.class);
         when(oldSegment.log()).thenReturn(fileRecords);
         when(fileRecords.file()).thenReturn(tempFile);
         when(fileRecords.sizeInBytes()).thenReturn(10);
@@ -917,13 +917,13 @@ public class RemoteLogManagerTest {
         File mockProducerSnapshotIndex = TestUtils.tempFile();
         File tempDir = TestUtils.tempDirectory();
         // create 2 log segments, with 0 and 150 as log start offset
-        LogSegment oldSegment = mock(LogSegment.class);
-        LogSegment activeSegment = mock(LogSegment.class);
+        VortexLogSegment oldSegment = mock(VortexLogSegment.class);
+        VortexLogSegment activeSegment = mock(VortexLogSegment.class);
 
         when(oldSegment.baseOffset()).thenReturn(oldSegmentStartOffset);
         when(activeSegment.baseOffset()).thenReturn(nextSegmentStartOffset);
 
-        FileRecords fileRecords = mock(FileRecords.class);
+        VortexLogSegment.FileRecords fileRecords = mock(VortexLogSegment.FileRecords.class);
         when(oldSegment.log()).thenReturn(fileRecords);
         when(fileRecords.file()).thenReturn(tempFile);
         when(fileRecords.sizeInBytes()).thenReturn(10);
@@ -1030,21 +1030,21 @@ public class RemoteLogManagerTest {
         File mockProducerSnapshotIndex = TestUtils.tempFile();
         File tempDir = TestUtils.tempDirectory();
         // create 3 log segments, with 0, 75 and 150 as log start offset
-        LogSegment oldestSegment = mock(LogSegment.class);
-        LogSegment olderSegment = mock(LogSegment.class);
-        LogSegment activeSegment = mock(LogSegment.class);
+        VortexLogSegment oldestSegment = mock(VortexLogSegment.class);
+        VortexLogSegment olderSegment = mock(VortexLogSegment.class);
+        VortexLogSegment activeSegment = mock(VortexLogSegment.class);
 
         when(oldestSegment.baseOffset()).thenReturn(oldestSegmentStartOffset);
         when(olderSegment.baseOffset()).thenReturn(olderSegmentStartOffset);
         when(activeSegment.baseOffset()).thenReturn(nextSegmentStartOffset);
 
-        FileRecords oldestFileRecords = mock(FileRecords.class);
+        VortexLogSegment.FileRecords oldestFileRecords = mock(VortexLogSegment.FileRecords.class);
         when(oldestSegment.log()).thenReturn(oldestFileRecords);
         when(oldestFileRecords.file()).thenReturn(tempFile);
         when(oldestFileRecords.sizeInBytes()).thenReturn(10);
         when(oldestSegment.readNextOffset()).thenReturn(olderSegmentStartOffset);
 
-        FileRecords olderFileRecords = mock(FileRecords.class);
+        VortexLogSegment.FileRecords olderFileRecords = mock(VortexLogSegment.FileRecords.class);
         when(olderSegment.log()).thenReturn(olderFileRecords);
         when(olderFileRecords.file()).thenReturn(tempFile);
         when(olderFileRecords.sizeInBytes()).thenReturn(10);
@@ -1194,13 +1194,13 @@ public class RemoteLogManagerTest {
         File mockProducerSnapshotIndex = TestUtils.tempFile();
         File tempDir = TestUtils.tempDirectory();
         // create 2 log segments, with 0 and 150 as log start offset
-        LogSegment oldSegment = mock(LogSegment.class);
-        LogSegment activeSegment = mock(LogSegment.class);
+        VortexLogSegment oldSegment = mock(VortexLogSegment.class);
+        VortexLogSegment activeSegment = mock(VortexLogSegment.class);
 
         when(oldSegment.baseOffset()).thenReturn(oldSegmentStartOffset);
         when(activeSegment.baseOffset()).thenReturn(nextSegmentStartOffset);
 
-        FileRecords fileRecords = mock(FileRecords.class);
+        VortexLogSegment.FileRecords fileRecords = mock(VortexLogSegment.FileRecords.class);
         when(oldSegment.log()).thenReturn(fileRecords);
         when(fileRecords.file()).thenReturn(tempFile);
         when(fileRecords.sizeInBytes()).thenReturn(10);
@@ -1269,8 +1269,8 @@ public class RemoteLogManagerTest {
             .thenThrow(new ReplicaNotAvailableException("Remote log metadata cache is not initialized for partition: " + leaderTopicIdPartition));
 
         // create 2 log segments, with 0 and 150 as log start offset
-        LogSegment oldSegment = mock(LogSegment.class);
-        LogSegment activeSegment = mock(LogSegment.class);
+        VortexLogSegment oldSegment = mock(VortexLogSegment.class);
+        VortexLogSegment activeSegment = mock(VortexLogSegment.class);
 
         when(oldSegment.baseOffset()).thenReturn(oldSegmentStartOffset);
         when(activeSegment.baseOffset()).thenReturn(nextSegmentStartOffset);
@@ -1630,8 +1630,8 @@ public class RemoteLogManagerTest {
         FileRecords.TimestampAndOffset expectedRemoteResult = new FileRecords.TimestampAndOffset(timestamp + 999, 999, Optional.of(Integer.MAX_VALUE));
         Partition mockFollowerPartition = mockPartition(tpId);
 
-        LogSegment logSegment = mockLogSegment(50L, timestamp, null);
-        LogSegment logSegment1 = mockLogSegment(100L, timestamp + 1, expectedLocalResult);
+        VortexLogSegment logSegment = mockLogSegment(50L, timestamp, null);
+        VortexLogSegment logSegment1 = mockLogSegment(100L, timestamp + 1, expectedLocalResult);
         when(mockLog.logSegments()).thenReturn(Arrays.asList(logSegment, logSegment1));
         when(mockLog.logEndOffset()).thenReturn(300L);
         remoteLogManager = new RemoteLogManager(config.remoteLogManagerConfig(), brokerId, logDir, clusterId, time,
@@ -1667,10 +1667,10 @@ public class RemoteLogManagerTest {
         assertEquals(Optional.of(expectedRemoteResult), remoteLogManager.findOffsetByTimestamp(tp, timestamp + 1, 0L, cache));
     }
 
-    private LogSegment mockLogSegment(long baseOffset,
+    private VortexLogSegment mockLogSegment(long baseOffset,
                                       long largestTimestamp,
                                       FileRecords.TimestampAndOffset timestampAndOffset) throws IOException {
-        LogSegment logSegment = mock(LogSegment.class);
+        VortexLogSegment logSegment = mock(VortexLogSegment.class);
         when(logSegment.baseOffset()).thenReturn(baseOffset);
         when(logSegment.largestTimestamp()).thenReturn(largestTimestamp);
         if (timestampAndOffset != null) {
@@ -1930,9 +1930,9 @@ public class RemoteLogManagerTest {
     @Test
     public void testCandidateLogSegmentsSkipsActiveSegment() {
         UnifiedLog log = mock(UnifiedLog.class);
-        LogSegment segment1 = mock(LogSegment.class);
-        LogSegment segment2 = mock(LogSegment.class);
-        LogSegment activeSegment = mock(LogSegment.class);
+        VortexLogSegment segment1 = mock(VortexLogSegment.class);
+        VortexLogSegment segment2 = mock(VortexLogSegment.class);
+        VortexLogSegment activeSegment = mock(VortexLogSegment.class);
 
         when(segment1.baseOffset()).thenReturn(5L);
         when(segment2.baseOffset()).thenReturn(10L);
@@ -1954,10 +1954,10 @@ public class RemoteLogManagerTest {
     @Test
     public void testCandidateLogSegmentsSkipsSegmentsAfterLastStableOffset() {
         UnifiedLog log = mock(UnifiedLog.class);
-        LogSegment segment1 = mock(LogSegment.class);
-        LogSegment segment2 = mock(LogSegment.class);
-        LogSegment segment3 = mock(LogSegment.class);
-        LogSegment activeSegment = mock(LogSegment.class);
+        VortexLogSegment segment1 = mock(VortexLogSegment.class);
+        VortexLogSegment segment2 = mock(VortexLogSegment.class);
+        VortexLogSegment segment3 = mock(VortexLogSegment.class);
+        VortexLogSegment activeSegment = mock(VortexLogSegment.class);
 
         when(segment1.baseOffset()).thenReturn(5L);
         when(segment2.baseOffset()).thenReturn(10L);
@@ -2240,13 +2240,13 @@ public class RemoteLogManagerTest {
         when(mockLog.leaderEpochCache()).thenReturn(Option.apply(cache));
 
         // create 2 log segments, with 0 and 150 as log start offset
-        LogSegment oldSegment = mock(LogSegment.class);
-        LogSegment activeSegment = mock(LogSegment.class);
+        VortexLogSegment oldSegment = mock(VortexLogSegment.class);
+        VortexLogSegment activeSegment = mock(VortexLogSegment.class);
         when(oldSegment.baseOffset()).thenReturn(oldSegmentStartOffset);
         when(activeSegment.baseOffset()).thenReturn(nextSegmentStartOffset);
 
         File tempFile = TestUtils.tempFile();
-        FileRecords fileRecords = mock(FileRecords.class);
+        VortexLogSegment.FileRecords fileRecords = mock(VortexLogSegment.FileRecords.class);
         when(fileRecords.file()).thenReturn(tempFile);
         when(fileRecords.sizeInBytes()).thenReturn(10);
 
@@ -3334,11 +3334,11 @@ public class RemoteLogManagerTest {
         when(remoteLogMetadataManager.highestOffsetForEpoch(any(TopicIdPartition.class), anyInt())).thenReturn(Optional.of(0L));
 
         // create 2 log segments, with 0 and 150 as log start offset
-        LogSegment oldSegment = mock(LogSegment.class);
-        LogSegment activeSegment = mock(LogSegment.class);
+        VortexLogSegment oldSegment = mock(VortexLogSegment.class);
+        VortexLogSegment activeSegment = mock(VortexLogSegment.class);
 
         File tempFile = TestUtils.tempFile();
-        FileRecords fileRecords = mock(FileRecords.class);
+        VortexLogSegment.FileRecords fileRecords = mock(VortexLogSegment.FileRecords.class);
         when(fileRecords.file()).thenReturn(tempFile);
         when(fileRecords.sizeInBytes()).thenReturn(10);
 
@@ -3397,12 +3397,12 @@ public class RemoteLogManagerTest {
         when(remoteLogMetadataManager.highestOffsetForEpoch(any(TopicIdPartition.class), anyInt())).thenReturn(Optional.of(0L));
 
         // create 3 log segments
-        LogSegment segmentToCopy = mock(LogSegment.class);
-        LogSegment segmentToThrottle = mock(LogSegment.class);
-        LogSegment activeSegment = mock(LogSegment.class);
+        VortexLogSegment segmentToCopy = mock(VortexLogSegment.class);
+        VortexLogSegment segmentToThrottle = mock(VortexLogSegment.class);
+        VortexLogSegment activeSegment = mock(VortexLogSegment.class);
 
         File tempFile = TestUtils.tempFile();
-        FileRecords fileRecords = mock(FileRecords.class);
+        VortexLogSegment.FileRecords fileRecords = mock(VortexLogSegment.FileRecords.class);
         when(fileRecords.file()).thenReturn(tempFile);
         when(fileRecords.sizeInBytes()).thenReturn(10);
 
@@ -3512,5 +3512,4 @@ public class RemoteLogManagerTest {
         props.put(DEFAULT_REMOTE_LOG_METADATA_MANAGER_CONFIG_PREFIX + remoteLogMetadataConsumerTestProp, remoteLogMetadataConsumerTestVal);
         props.put(DEFAULT_REMOTE_LOG_METADATA_MANAGER_CONFIG_PREFIX + remoteLogMetadataProducerTestProp, remoteLogMetadataProducerTestVal);
     }
-
 }

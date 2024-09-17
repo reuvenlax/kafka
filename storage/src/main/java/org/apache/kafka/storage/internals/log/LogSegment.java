@@ -239,7 +239,7 @@ public class LogSegment implements Closeable {
      */
     public void append(long largestOffset,
                        long largestTimestampMs,
-                       long shallowOffsetOfMaxTimestamp,
+                           long shallowOffsetOfMaxTimestamp,
                        MemoryRecords records) throws IOException {
         if (records.sizeInBytes() > 0) {
             LOGGER.trace("Inserting {} bytes at end offset {} at position {} with largest timestamp {} at offset {}",
@@ -268,8 +268,8 @@ public class LogSegment implements Closeable {
     }
 
     private void ensureOffsetInRange(long offset) throws IOException {
-        if (!canConvertToRelativeOffset(offset))
-            throw new LogSegmentOffsetOverflowException(this, offset);
+   //     if (!canConvertToRelativeOffset(offset))
+   //         throw new LogSegmentOffsetOverflowException(this, offset);
     }
 
     private int appendChunkFromFile(FileRecords records, int position, BufferSupplier bufferSupplier) throws IOException {

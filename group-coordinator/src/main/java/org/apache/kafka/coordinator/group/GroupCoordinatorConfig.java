@@ -191,7 +191,7 @@ public class GroupCoordinatorConfig {
     public static final String OFFSETS_TOPIC_SEGMENT_BYTES_DOC = "The offsets topic segment bytes should be kept relatively small in order to facilitate faster log compaction and cache loads.";
 
     public static final String OFFSETS_TOPIC_REPLICATION_FACTOR_CONFIG = "offsets.topic.replication.factor";
-    public static final short OFFSETS_TOPIC_REPLICATION_FACTOR_DEFAULT = 3;
+    public static final short OFFSETS_TOPIC_REPLICATION_FACTOR_DEFAULT = 1;
     public static final String OFFSETS_TOPIC_REPLICATION_FACTOR_DOC = "The replication factor for the offsets topic (set higher to ensure availability). " +
             "Internal topic creation will fail until the cluster size meets this replication factor requirement.";
 

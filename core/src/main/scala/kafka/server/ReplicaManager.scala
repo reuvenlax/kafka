@@ -666,7 +666,8 @@ class ReplicaManager(val config: KafkaConfig,
   }
 
   def onlinePartition(topicPartition: TopicPartition): Option[Partition] = {
-    getPartition(topicPartition) match {
+    val partition = getPartition(topicPartition)
+    partition match {
       case HostedPartition.Online(partition) => Some(partition)
       case _ => None
     }
@@ -2351,7 +2352,7 @@ class ReplicaManager(val config: KafkaConfig,
               s"(last update controller epoch ${partitionState.controllerEpoch}) since " +
               s"the replica for the partition is offline due to storage error $e")
             // If there is an offline log directory, a Partition object may have been created and have been added
-            // to `ReplicaManager.allPartitions` before `createLogIfNotExists()` failed to create local replica due
+            // to `ReplicaManager.allPartitions` before `createUnifiedLogIfNotExists()` failed to create local replica due
             // to KafkaStorageException. In this case `ReplicaManager.allPartitions` will map this topic-partition
             // to an empty Partition object. We need to map this topic-partition to OfflinePartition instead.
             markPartitionOffline(partition.topicPartition)
@@ -2441,7 +2442,7 @@ class ReplicaManager(val config: KafkaConfig,
               s"(last update controller epoch ${partitionState.controllerEpoch}) with leader " +
               s"$newLeaderBrokerId since the replica for the partition is offline due to storage error $e")
             // If there is an offline log directory, a Partition object may have been created and have been added
-            // to `ReplicaManager.allPartitions` before `createLogIfNotExists()` failed to create local replica due
+            // to `ReplicaManager.allPartitions` before `createUnifiedLogIfNotExists()` failed to create local replica due
             // to KafkaStorageException. In this case `ReplicaManager.allPartitions` will map this topic-partition
             // to an empty Partition object. We need to map this topic-partition to OfflinePartition instead.
             markPartitionOffline(partition.topicPartition)
@@ -2935,7 +2936,7 @@ class ReplicaManager(val config: KafkaConfig,
             stateChangeLogger.info(s"Skipped the become-leader state change for $tp " +
               s"with topic id ${info.topicId} due to a storage error ${e.getMessage}")
             // If there is an offline log directory, a Partition object may have been created by
-            // `getOrCreatePartition()` before `createLogIfNotExists()` failed to create local replica due
+            // `getOrCreatePartition()` before `createUnifiedLogIfNotExists()` failed to create local replica due
             // to KafkaStorageException. In this case `ReplicaManager.allPartitions` will map this topic-partition
             // to an empty Partition object. We need to map this topic-partition to OfflinePartition instead.
             markPartitionOffline(tp)
@@ -2988,7 +2989,7 @@ class ReplicaManager(val config: KafkaConfig,
               s"with topic ID ${info.topicId} due to a storage error ${e.getMessage}", e)
             replicaFetcherManager.addFailedPartition(tp)
             // If there is an offline log directory, a Partition object may have been created by
-            // `getOrCreatePartition()` before `createLogIfNotExists()` failed to create local replica due
+            // `getOrCreatePartition()` before `createUnifiedLogIfNotExists()` failed to create local replica due
             // to KafkaStorageException. In this case `ReplicaManager.allPartitions` will map this topic-partition
             // to an empty Partition object. We need to map this topic-partition to OfflinePartition instead.
             markPartitionOffline(tp)

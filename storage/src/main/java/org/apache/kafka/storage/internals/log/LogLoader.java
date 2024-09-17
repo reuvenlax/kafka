@@ -46,6 +46,8 @@ public class LogLoader {
 
     private static final String SNAPSHOT_DELETE_SUFFIX = ".checkpoint.deleted";
 
+    private final VortexLog localLog;
+
     private final File dir;
     private final TopicPartition topicPartition;
     private final LogConfig config;
@@ -53,7 +55,7 @@ public class LogLoader {
     private final Time time;
     private final LogDirFailureChannel logDirFailureChannel;
     private final boolean hadCleanShutdown;
-    private final LogSegments segments;
+    private final VortexLogSegments segments;
     private final long logStartOffsetCheckpoint;
     private final long recoveryPointCheckpoint;
     private final Optional<LeaderEpochFileCache> leaderEpochCache;
@@ -80,6 +82,7 @@ public class LogLoader {
      * @param isRemoteLogEnabled Boolean flag to indicate whether the remote storage is enabled or not
      */
     public LogLoader(
+            VortexLog localLog,
             File dir,
             TopicPartition topicPartition,
             LogConfig config,
@@ -87,13 +90,14 @@ public class LogLoader {
             Time time,
             LogDirFailureChannel logDirFailureChannel,
             boolean hadCleanShutdown,
-            LogSegments segments,
+            VortexLogSegments segments,
             long logStartOffsetCheckpoint,
             long recoveryPointCheckpoint,
             Optional<LeaderEpochFileCache> leaderEpochCache,
             ProducerStateManager producerStateManager,
             ConcurrentMap<String, Integer> numRemainingSegments,
             boolean isRemoteLogEnabled) {
+        this.localLog = localLog;
         this.dir = dir;
         this.topicPartition = topicPartition;
         this.config = config;
@@ -142,7 +146,9 @@ public class LogLoader {
                 continue;
             }
             long baseOffset = LogFileUtils.offsetFromFile(swapFile);
-            LogSegment segment = LogSegment.open(swapFile.getParentFile(),
+            VortexLogSegment segment = VortexLogSegment.open(
+                    localLog,
+                    swapFile.getParentFile(),
                     baseOffset,
                     config,
                     time,
@@ -210,7 +216,7 @@ public class LogLoader {
             segments.lastSegment().get().resizeIndexes(config.maxIndexSize);
         } else {
             if (segments.isEmpty()) {
-                segments.add(LogSegment.open(dir, 0, config, time, config.initFileSize(), false));
+                segments.add(VortexLogSegment.open(localLog, dir, 0, config, time, config.initFileSize(), false));
             }
             recoveryOffsets = new RecoveryOffsets(0L, 0L);
         }
@@ -242,7 +248,7 @@ public class LogLoader {
                 time,
                 hadCleanShutdown,
                 logPrefix);
-        LogSegment activeSegment = segments.lastSegment().get();
+        VortexLogSegment activeSegment = segments.lastSegment().get();
         return new LoadedLogOffsets(
                 newLogStartOffset,
                 recoveryOffsets.newRecoveryPoint,
@@ -328,7 +334,7 @@ public class LogLoader {
                 return function.execute();
             } catch (LogSegmentOffsetOverflowException lsooe) {
                 logger.info("Caught segment overflow error: {}. Split segment and retry.", lsooe.getMessage());
-                LocalLog.SplitSegmentResult result = LocalLog.splitOverflowedSegment(
+                VortexLog.SplitSegmentResult result = VortexLog.splitOverflowedSegment(
                         lsooe.segment,
                         segments,
                         dir,
@@ -372,7 +378,7 @@ public class LogLoader {
                 // if it's a log file, load the corresponding log segment
                 long baseOffset = LogFileUtils.offsetFromFile(file);
                 boolean timeIndexFileNewlyCreated = !LogFileUtils.timeIndexFile(dir, baseOffset).exists();
-                LogSegment segment = LogSegment.open(dir, baseOffset, config, time, true, 0, false, "");
+                VortexLogSegment segment = VortexLogSegment.open(localLog, dir, baseOffset, config, time, true, 0, false, "");
                 try {
                     segment.sanityCheck(timeIndexFileNewlyCreated);
                 } catch (NoSuchFileException nsfe) {
@@ -396,7 +402,7 @@ public class LogLoader {
      * @return The number of bytes truncated from the segment
      * @throws LogSegmentOffsetOverflowException if the segment contains messages that cause index offset overflow
      */
-    private int recoverSegment(LogSegment segment) throws IOException {
+    private int recoverSegment(VortexLogSegment segment) throws IOException {
         ProducerStateManager producerStateManager = new ProducerStateManager(
                 topicPartition,
                 dir,
@@ -464,16 +470,16 @@ public class LogLoader {
     RecoveryOffsets recoverLog() throws IOException {
         // If we have the clean shutdown marker, skip recovery.
         if (!hadCleanShutdown) {
-            Collection<LogSegment> unflushed = segments.values(recoveryPointCheckpoint, Long.MAX_VALUE);
+            Collection<VortexLogSegment> unflushed = segments.values(recoveryPointCheckpoint, Long.MAX_VALUE);
             int numUnflushed = unflushed.size();
-            Iterator<LogSegment> unflushedIter = unflushed.iterator();
+            Iterator<VortexLogSegment> unflushedIter = unflushed.iterator();
             boolean truncated = false;
             int numFlushed = 0;
             String threadName = Thread.currentThread().getName();
             numRemainingSegments.put(threadName, numUnflushed);
 
             while (unflushedIter.hasNext() && !truncated) {
-                LogSegment segment = unflushedIter.next();
+                VortexLogSegment segment = unflushedIter.next();
                 logger.info("Recovering unflushed segment {}. {} recovered for {}.", segment.baseOffset(), numFlushed / numUnflushed, topicPartition);
                 int truncatedBytes;
                 try {
@@ -486,7 +492,7 @@ public class LogLoader {
                 if (truncatedBytes > 0) {
                     // we had an invalid message, delete all remaining log
                     logger.warn("Corruption found in segment {}, truncating to offset {}", segment.baseOffset(), segment.readNextOffset());
-                    Collection<LogSegment> unflushedRemaining = new ArrayList<>();
+                    Collection<VortexLogSegment> unflushedRemaining = new ArrayList<>();
                     unflushedIter.forEachRemaining(unflushedRemaining::add);
                     removeAndDeleteSegmentsAsync(unflushedRemaining);
                     truncated = true;
@@ -500,10 +506,12 @@ public class LogLoader {
         }
 
         Optional<Long> logEndOffsetOptional = deleteSegmentsIfLogStartGreaterThanLogEnd();
+
         if (segments.isEmpty()) {
             // no existing segments, create a new mutable segment beginning at logStartOffset
-            segments.add(LogSegment.open(dir, logStartOffsetCheckpoint, config, time, config.initFileSize(), config.preallocate));
+            segments.add(VortexLogSegment.open(localLog, dir, logStartOffsetCheckpoint, config, time, config.initFileSize(), config.preallocate));
         }
+
 
         // Update the recovery point if there was a clean shutdown and did not perform any changes to
         // the segment. Otherwise, we just ensure that the recovery point is not ahead of the log end
@@ -533,12 +541,12 @@ public class LogLoader {
      *
      * @param segmentsToDelete The log segments to schedule for deletion
      */
-    private void removeAndDeleteSegmentsAsync(Collection<LogSegment> segmentsToDelete) throws IOException {
+    private void removeAndDeleteSegmentsAsync(Collection<VortexLogSegment> segmentsToDelete) throws IOException {
         if (!segmentsToDelete.isEmpty()) {
-            List<LogSegment> toDelete = new ArrayList<>(segmentsToDelete);
-            logger.info("Deleting segments as part of log recovery: {}", toDelete.stream().map(LogSegment::toString).collect(Collectors.joining(", ")));
+            List<VortexLogSegment> toDelete = new ArrayList<>(segmentsToDelete);
+            logger.info("Deleting segments as part of log recovery: {}", toDelete.stream().map(VortexLogSegment::toString).collect(Collectors.joining(", ")));
             toDelete.forEach(segment -> segments.remove(segment.baseOffset()));
-            LocalLog.deleteSegmentFiles(
+            VortexLog.deleteSegmentFiles(
                     toDelete,
                     true,
                     dir,
@@ -551,7 +559,7 @@ public class LogLoader {
         }
     }
 
-    private void deleteProducerSnapshotsAsync(Collection<LogSegment> segments) throws IOException {
+    private void deleteProducerSnapshotsAsync(Collection<VortexLogSegment> segments) throws IOException {
         UnifiedLog.deleteProducerSnapshots(
                 segments,
                 producerStateManager,

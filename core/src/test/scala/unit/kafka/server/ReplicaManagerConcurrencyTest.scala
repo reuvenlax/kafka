@@ -183,7 +183,6 @@ class ReplicaManagerConcurrencyTest extends Logging {
       logDirs = Seq(logDir),
       time = time
     )
-
     quotaManagers = QuotaFactory.instantiate(config, metrics, time, "")
 
     new ReplicaManager(

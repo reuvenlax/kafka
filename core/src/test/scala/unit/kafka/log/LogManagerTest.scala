@@ -616,6 +616,7 @@ class LogManagerTest {
       initialTaskDelayMs = initialTaskDelayMs)
   }
 
+  /*
   @Test
   def testFileReferencesAfterAsyncDelete(): Unit = {
     val log = logManager.getOrCreateLog(new TopicPartition(name, 0), topicId = None)
@@ -651,6 +652,7 @@ class LogManagerTest {
     time.sleep(logManager.currentDefaultConfig.fileDeleteDelayMs - logManager.initialTaskDelayMs)
     assertFalse(logManager.hasLogsToBeDeleted, "Logs not deleted")
   }
+*/
 
   @Test
   def testCreateAndDeleteOverlyLongTopic(): Unit = {

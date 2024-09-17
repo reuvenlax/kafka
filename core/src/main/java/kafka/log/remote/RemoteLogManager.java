@@ -85,6 +85,7 @@ import org.apache.kafka.storage.internals.log.RemoteStorageFetchInfo;
 import org.apache.kafka.storage.internals.log.RemoteStorageThreadPool;
 import org.apache.kafka.storage.internals.log.TransactionIndex;
 import org.apache.kafka.storage.internals.log.TxnIndexSearchResult;
+import org.apache.kafka.storage.internals.log.VortexLogSegment;
 import org.apache.kafka.storage.log.metrics.BrokerTopicStats;
 
 import com.yammer.metrics.core.Timer;
@@ -693,13 +694,13 @@ public class RemoteLogManager implements Closeable {
                     && isRemoteSegmentWithinLeaderEpochs(rlsMetadata, unifiedLog.logEndOffset(), epochWithOffsets)
                     && rlsMetadata.state().equals(RemoteLogSegmentState.COPY_SEGMENT_FINISHED)) {
                     // cache to avoid race conditions
-                    List<LogSegment> segmentsCopy = new ArrayList<>(unifiedLog.logSegments());
+                    List<VortexLogSegment> segmentsCopy = new ArrayList<>(unifiedLog.logSegments());
                     if (segmentsCopy.isEmpty() || rlsMetadata.startOffset() < segmentsCopy.get(0).baseOffset()) {
                         // search in remote-log
                         return lookupTimestamp(rlsMetadata, timestamp, startingOffset);
                     } else {
                         // search in local-log
-                        for (LogSegment segment : segmentsCopy) {
+                        for (VortexLogSegment segment : segmentsCopy) {
                             if (segment.largestTimestamp() >= timestamp) {
                                 return segment.findOffsetByTimestamp(timestamp, startingOffset);
                             }
@@ -862,11 +863,11 @@ public class RemoteLogManager implements Closeable {
          */
         List<EnrichedLogSegment> candidateLogSegments(UnifiedLog log, Long fromOffset, Long lastStableOffset) {
             List<EnrichedLogSegment> candidateLogSegments = new ArrayList<>();
-            List<LogSegment> segments = JavaConverters.seqAsJavaList(log.logSegments(fromOffset, Long.MAX_VALUE).toSeq());
+            List<VortexLogSegment> segments = JavaConverters.seqAsJavaList(log.logSegments(fromOffset, Long.MAX_VALUE).toSeq());
             if (!segments.isEmpty()) {
                 for (int idx = 1; idx < segments.size(); idx++) {
-                    LogSegment previousSeg = segments.get(idx - 1);
-                    LogSegment currentSeg = segments.get(idx);
+                    VortexLogSegment previousSeg = segments.get(idx - 1);
+                    VortexLogSegment currentSeg = segments.get(idx);
                     if (currentSeg.baseOffset() <= lastStableOffset) {
                         candidateLogSegments.add(new EnrichedLogSegment(previousSeg, currentSeg.baseOffset()));
                     }
@@ -956,7 +957,7 @@ public class RemoteLogManager implements Closeable {
             }
         }
 
-        private void copyLogSegment(UnifiedLog log, LogSegment segment, RemoteLogSegmentId segmentId, long nextSegmentBaseOffset)
+        private void copyLogSegment(UnifiedLog log, VortexLogSegment segment, RemoteLogSegmentId segmentId, long nextSegmentBaseOffset)
                 throws InterruptedException, ExecutionException, RemoteStorageException, IOException,
                 CustomMetadataSizeLimitExceededException {
             File logFile = segment.log().file();
@@ -1744,6 +1745,7 @@ public class RemoteLogManager implements Closeable {
                                             RemoteLogSegmentMetadata segmentMetadata,
                                             Consumer<List<AbortedTxn>> accumulator,
                                             UnifiedLog log) throws RemoteStorageException {
+        /*
         // Search in remote segments first.
         Optional<RemoteLogSegmentMetadata> nextSegmentMetadataOpt = Optional.of(segmentMetadata);
         while (nextSegmentMetadataOpt.isPresent()) {
@@ -1762,6 +1764,7 @@ public class RemoteLogManager implements Closeable {
 
         // Search in local segments
         collectAbortedTransactionInLocalSegments(startOffset, upperBoundOffset, accumulator, log.logSegments().iterator());
+         */
     }
 
     private void collectAbortedTransactionInLocalSegments(long startOffset,
@@ -2124,10 +2127,10 @@ public class RemoteLogManager implements Closeable {
 
     // Visible for testing
     static class EnrichedLogSegment {
-        private final LogSegment logSegment;
+        private final VortexLogSegment logSegment;
         private final long nextSegmentOffset;
 
-        public EnrichedLogSegment(LogSegment logSegment,
+        public EnrichedLogSegment(VortexLogSegment logSegment,
                                   long nextSegmentOffset) {
             this.logSegment = logSegment;
             this.nextSegmentOffset = nextSegmentOffset;

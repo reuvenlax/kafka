@@ -19,11 +19,11 @@ package kafka.utils
 import java.util.Properties
 import java.util.concurrent.atomic._
 import java.util.concurrent.{ConcurrentHashMap, CountDownLatch, Executors, TimeUnit}
-import kafka.log.{LocalLog, UnifiedLog}
+import kafka.log.{UnifiedLog}
 import kafka.utils.TestUtils.retry
 import org.apache.kafka.coordinator.transaction.TransactionLogConfig
 import org.apache.kafka.server.util.{KafkaScheduler, MockTime}
-import org.apache.kafka.storage.internals.log.{LogConfig, LogDirFailureChannel, LogLoader, LogSegments, ProducerStateManager, ProducerStateManagerConfig}
+import org.apache.kafka.storage.internals.log.{LogConfig, LogDirFailureChannel, LogLoader, ProducerStateManager, ProducerStateManagerConfig, VortexLog, VortexLogSegments}
 import org.apache.kafka.storage.log.metrics.BrokerTopicStats
 import org.junit.jupiter.api.Assertions._
 import org.junit.jupiter.api.{AfterEach, BeforeEach, Test, Timeout}
@@ -138,12 +138,14 @@ class SchedulerTest {
     val producerIdExpirationCheckIntervalMs = TransactionLogConfig.PRODUCER_ID_EXPIRATION_CHECK_INTERVAL_MS_DEFAULT
     val topicPartition = UnifiedLog.parseTopicPartitionName(logDir)
     val logDirFailureChannel = new LogDirFailureChannel(10)
-    val segments = new LogSegments(topicPartition)
+    val segments = new VortexLogSegments(topicPartition)
     val leaderEpochCache = UnifiedLog.maybeCreateLeaderEpochCache(
       logDir, topicPartition, logDirFailureChannel, logConfig.recordVersion, "", None, mockTime.scheduler)
     val producerStateManager = new ProducerStateManager(topicPartition, logDir,
       maxTransactionTimeoutMs, new ProducerStateManagerConfig(maxProducerIdExpirationMs, false), mockTime)
+    val vortexLog = new VortexLog(logDir, logConfig, segments, mockTime.scheduler, mockTime, topicPartition, logDirFailureChannel)
     val offsets = new LogLoader(
+      vortexLog,
       logDir,
       topicPartition,
       logConfig,
@@ -159,10 +161,9 @@ class SchedulerTest {
       new ConcurrentHashMap[String, Integer],
       false
     ).load()
-    val localLog = new LocalLog(logDir, logConfig, segments, offsets.recoveryPoint,
-      offsets.nextOffsetMetadata, scheduler, mockTime, topicPartition, logDirFailureChannel)
+
     val log = new UnifiedLog(logStartOffset = offsets.logStartOffset,
-      localLog = localLog,
+      vortexLog,
       brokerTopicStats, producerIdExpirationCheckIntervalMs,
       leaderEpochCache, producerStateManager,
       _topicId = None, keepPartitionMetadataFile = true)

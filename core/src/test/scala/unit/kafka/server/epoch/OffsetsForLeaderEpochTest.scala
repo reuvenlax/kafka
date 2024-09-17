@@ -61,6 +61,7 @@ class OffsetsForLeaderEpochTest {
     //Stubs
     val mockLog: UnifiedLog = mock(classOf[UnifiedLog])
     val logManager: LogManager = mock(classOf[LogManager])
+
     when(mockLog.endOffsetForEpoch(epochRequested)).thenReturn(Some(offsetAndEpoch))
     when(logManager.liveLogDirs).thenReturn(Array.empty[File])
 
@@ -122,6 +123,7 @@ class OffsetsForLeaderEpochTest {
   @Test
   def shouldReturnUnknownTopicOrPartitionIfThrown(): Unit = {
     val logManager: LogManager = mock(classOf[LogManager])
+
     when(logManager.liveLogDirs).thenReturn(Array.empty[File])
 
     //create a replica manager with 0 partition

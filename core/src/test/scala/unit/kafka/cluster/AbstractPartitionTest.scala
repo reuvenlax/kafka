@@ -78,7 +78,6 @@ class AbstractPartitionTest {
     logManager = TestUtils.createLogManager(Seq(logDir1, logDir2), logConfig, configRepository,
       new CleanerConfig(false), time, interBrokerProtocolVersion, transactionVerificationEnabled = true)
     logManager.startup(Set.empty)
-
     alterPartitionManager = TestUtils.createAlterIsrManager()
     alterPartitionListener = createIsrChangeListener()
     partition = new Partition(topicPartition,

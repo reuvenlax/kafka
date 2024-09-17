@@ -39,6 +39,13 @@ public enum TimestampType {
         throw new NoSuchElementException("Invalid timestamp type " + name);
     }
 
+    public static TimestampType forId(int id) {
+        for (TimestampType t : values())
+            if (t.id == id)
+                return t;
+        throw new NoSuchElementException("Invalid timestamp type id " + id);
+    }
+
     @Override
     public String toString() {
         return name;

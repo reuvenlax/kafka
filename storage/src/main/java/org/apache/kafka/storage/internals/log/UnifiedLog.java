@@ -55,7 +55,7 @@ public class UnifiedLog {
      * @param logPrefix               The logging prefix
      */
     public static void rebuildProducerState(ProducerStateManager producerStateManager,
-                                            LogSegments segments,
+                                            VortexLogSegments segments,
                                             long logStartOffset,
                                             long lastOffset,
                                             RecordVersion recordVersion,
@@ -65,8 +65,8 @@ public class UnifiedLog {
         List<Optional<Long>> offsetsToSnapshot = new ArrayList<>();
         if (segments.nonEmpty()) {
             long lastSegmentBaseOffset = segments.lastSegment().get().baseOffset();
-            Optional<LogSegment> lowerSegment = segments.lowerSegment(lastSegmentBaseOffset);
-            Optional<Long> nextLatestSegmentBaseOffset = lowerSegment.map(LogSegment::baseOffset);
+            Optional<VortexLogSegment> lowerSegment = segments.lowerSegment(lastSegmentBaseOffset);
+            Optional<Long> nextLatestSegmentBaseOffset = lowerSegment.map(VortexLogSegment::baseOffset);
             offsetsToSnapshot.add(nextLatestSegmentBaseOffset);
             offsetsToSnapshot.add(Optional.of(lastSegmentBaseOffset));
         }
@@ -111,9 +111,9 @@ public class UnifiedLog {
             // and we can skip the loading. This is an optimization for users which are not yet using
             // idempotent/transactional features yet.
             if (lastOffset > producerStateManager.mapEndOffset() && !isEmptyBeforeTruncation) {
-                Optional<LogSegment> segmentOfLastOffset = segments.floorSegment(lastOffset);
+                Optional<VortexLogSegment> segmentOfLastOffset = segments.floorSegment(lastOffset);
 
-                for (LogSegment segment : segments.values(producerStateManager.mapEndOffset(), lastOffset)) {
+                for (VortexLogSegment segment : segments.values(producerStateManager.mapEndOffset(), lastOffset)) {
                     long startOffset = Utils.max(segment.baseOffset(), producerStateManager.mapEndOffset(), logStartOffset);
                     producerStateManager.updateMapEndOffset(startOffset);
 
@@ -139,7 +139,7 @@ public class UnifiedLog {
         }
     }
 
-    public static void deleteProducerSnapshots(Collection<LogSegment> segments,
+    public static void deleteProducerSnapshots(Collection<VortexLogSegment> segments,
                                                ProducerStateManager producerStateManager,
                                                boolean asyncDelete,
                                                Scheduler scheduler,
@@ -148,7 +148,7 @@ public class UnifiedLog {
                                                String parentDir,
                                                TopicPartition topicPartition) throws IOException {
         List<SnapshotFile> snapshotsToDelete = new ArrayList<>();
-        for (LogSegment segment : segments) {
+        for (VortexLogSegment segment : segments) {
             Optional<SnapshotFile> snapshotFile = producerStateManager.removeAndMarkSnapshotForDeletion(segment.baseOffset());
             snapshotFile.ifPresent(snapshotsToDelete::add);
         }

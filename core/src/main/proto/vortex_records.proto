@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package org.apache.kafka.storage.internals.log;
+
+option java_package = "org.apache.kafka.storage.internals.log";
+option java_outer_classname = "VortexRecords";
+
+
+message Header {
+  string key = 1;
+  bytes value = 2;
+}
+
+message StartBatch {
+  int32 magic = 1;
+  int32 partition_leader_epoch = 2;
+  bool is_compressed = 3;
+  bool is_control = 4;
+  bool is_transactional = 5;
+  int32 producer_epoch = 6;
+  int64 producer_id = 7;
+  int32 timestamp_type = 8;
+}
+
+message VortexRecord {
+  bytes key = 1;
+  bytes value = 2;
+  int64 offset = 3;
+  bool is_compressed = 4;
+  int32 sequence = 5;
+  int64 timestamp  = 6;
+  repeated Header header = 7;
+  StartBatch start_batch = 8;
+  int64 start_batch_offset = 9;
+}

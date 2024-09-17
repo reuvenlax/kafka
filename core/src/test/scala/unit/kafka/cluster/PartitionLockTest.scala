@@ -41,7 +41,7 @@ import org.apache.kafka.server.storage.log.{FetchIsolation, FetchParams}
 import org.apache.kafka.server.util.MockTime
 import org.apache.kafka.storage.internals.checkpoint.OffsetCheckpoints
 import org.apache.kafka.storage.internals.epoch.LeaderEpochFileCache
-import org.apache.kafka.storage.internals.log.{AppendOrigin, CleanerConfig, LogAppendInfo, LogConfig, LogDirFailureChannel, LogLoader, LogSegments, ProducerStateManager, ProducerStateManagerConfig, VerificationGuard}
+import org.apache.kafka.storage.internals.log.{AppendOrigin, CleanerConfig, LogAppendInfo, LogConfig, LogDirFailureChannel, LogLoader, ProducerStateManager, ProducerStateManagerConfig, VerificationGuard, VortexLog, VortexLogSegments}
 import org.apache.kafka.storage.log.metrics.BrokerTopicStats
 import org.junit.jupiter.api.Assertions.{assertEquals, assertFalse, assertTrue}
 import org.junit.jupiter.api.{AfterEach, BeforeEach, Test}
@@ -301,7 +301,7 @@ class PartitionLockTest extends Logging {
       override def createLog(isNew: Boolean, isFutureReplica: Boolean, offsetCheckpoints: OffsetCheckpoints, topicId: Option[Uuid], targetLogDirectoryId: Option[Uuid]): UnifiedLog = {
         val log = super.createLog(isNew, isFutureReplica, offsetCheckpoints, None, None)
         val logDirFailureChannel = new LogDirFailureChannel(1)
-        val segments = new LogSegments(log.topicPartition)
+        val segments = new VortexLogSegments(log.topicPartition)
         val leaderEpochCache = UnifiedLog.maybeCreateLeaderEpochCache(
           log.dir, log.topicPartition, logDirFailureChannel, log.config.recordVersion, "", None, mockTime.scheduler)
         val maxTransactionTimeout = 5 * 60 * 1000
@@ -314,6 +314,7 @@ class PartitionLockTest extends Logging {
           mockTime
         )
         val offsets = new LogLoader(
+          log.localLog,
           log.dir,
           log.topicPartition,
           log.config,
@@ -329,10 +330,9 @@ class PartitionLockTest extends Logging {
           new ConcurrentHashMap[String, Integer],
           false
         ).load()
-        val localLog = new LocalLog(log.dir, log.config, segments, offsets.recoveryPoint,
-          offsets.nextOffsetMetadata, mockTime.scheduler, mockTime, log.topicPartition,
-          logDirFailureChannel)
-        new SlowLog(log, offsets.logStartOffset, localLog, leaderEpochCache, producerStateManager, appendSemaphore)
+
+        val vortexLog = new VortexLog(logDir, log.config, segments, log.scheduler, mockTime, log.topicPartition, log.logDirFailureChannel)
+        new SlowLog(log, offsets.logStartOffset, vortexLog, leaderEpochCache, producerStateManager, appendSemaphore)
       }
     }
 
@@ -441,15 +441,15 @@ class PartitionLockTest extends Logging {
   }
 
   private class SlowLog(
-    log: UnifiedLog,
-    logStartOffset: Long,
-    localLog: LocalLog,
-    leaderEpochCache: Option[LeaderEpochFileCache],
-    producerStateManager: ProducerStateManager,
-    appendSemaphore: Semaphore
+                         log: UnifiedLog,
+                         logStartOffset: Long,
+                         vortexLog: VortexLog,
+                         leaderEpochCache: Option[LeaderEpochFileCache],
+                         producerStateManager: ProducerStateManager,
+                         appendSemaphore: Semaphore
   ) extends UnifiedLog(
     logStartOffset,
-    localLog,
+    vortexLog,
     new BrokerTopicStats,
     log.producerIdExpirationCheckIntervalMs,
     leaderEpochCache,

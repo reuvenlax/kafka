@@ -162,7 +162,9 @@ versions += [
   // Also make sure the compression levels in org.apache.kafka.common.record.CompressionType are still valid
   zstd: "1.5.6-6",
   junitPlatform: "1.10.2",
-  hdrHistogram: "2.2.2"
+  hdrHistogram: "2.2.2",
+  bigquerystorage: "3.9.0",
+  bigquerystorage_proto: "3.9.0"
 ]
 
 libs += [
@@ -257,9 +259,11 @@ libs += [
   swaggerAnnotations: "io.swagger.core.v3:swagger-annotations:$swaggerVersion",
   swaggerJaxrs2: "io.swagger.core.v3:swagger-jaxrs2:$swaggerVersion",
   zookeeper: "org.apache.zookeeper:zookeeper:$versions.zookeeper",
-  jfreechart: "jfreechart:jfreechart:$versions.jfreechart",
+  jfreechart: "RemoteLogManager.javajfreechart:jfreechart:$versions.jfreechart",
   mavenArtifact: "org.apache.maven:maven-artifact:$versions.mavenArtifact",
   zstd: "com.github.luben:zstd-jni:$versions.zstd",
   httpclient: "org.apache.httpcomponents:httpclient:$versions.httpclient",
-  hdrHistogram: "org.hdrhistogram:HdrHistogram:$versions.hdrHistogram"
+  hdrHistogram: "org.hdrhistogram:HdrHistogram:$versions.hdrHistogram",
+  google_cloud_bigquery_bigtable_storage: "com.google.cloud:google-cloud-bigquerystorage:$versions.bigquerystorage",
+  proto_google_cloud_bigquery_storage_v1: "com.google.api.grpc:proto-google-cloud-bigquerystorage-v1:$versions.bigquerystorage_proto",
 ]

@@ -85,7 +85,7 @@ class TransactionsTest extends IntegrationTestHarness {
 
   def topicConfig(): Properties = {
     val topicConfig = new Properties()
-    topicConfig.put(ServerLogConfigs.MIN_IN_SYNC_REPLICAS_CONFIG, 2.toString)
+    topicConfig.put(ServerLogConfigs.MIN_IN_SYNC_REPLICAS_CONFIG, 1.toString)
     topicConfig
   }
 
@@ -219,6 +219,7 @@ class TransactionsTest extends IntegrationTestHarness {
     // we should only see the first two records which come before the undecided second transaction
     readCommittedConsumer.assign(Set(tp1, tp2).asJava)
     val records = consumeRecords(readCommittedConsumer, 2)
+    Console.err.println("CONSUMED RECORDS " + records)
     records.foreach { record =>
       assertEquals("x", new String(record.key))
       assertEquals("1", new String(record.value))
@@ -875,7 +876,8 @@ class TransactionsTest extends IntegrationTestHarness {
       brokers.forall(broker => {
         partitionStartOffsets.forall {
           case (partition, offset) => {
-            val lso = broker.replicaManager.localLog(partition).get.logStartOffset
+            val log = broker.replicaManager.localLog(partition)
+            val lso = log.get.logStartOffset
             offsets.put(broker.config.brokerId, lso)
             offset == lso
           }
