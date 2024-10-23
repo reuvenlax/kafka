@@ -28,7 +28,7 @@ import org.apache.kafka.common.record._
 import org.apache.kafka.common.utils.Utils
 import org.apache.kafka.coordinator.transaction.TransactionLogConfig
 import org.apache.kafka.server.util.MockTime
-import org.apache.kafka.storage.internals.log.{AppendOrigin, LogConfig, LogDirFailureChannel, LogLoader, LogStartOffsetIncrementReason, ProducerStateManager, ProducerStateManagerConfig, VortexLog, VortexLogSegments}
+import org.apache.kafka.storage.internals.log.{AppendOrigin, LogConfig, LogDirFailureChannel, VortexLogLoader, LogStartOffsetIncrementReason, ProducerStateManager, ProducerStateManagerConfig, VortexLog, VortexLogSegments}
 import org.apache.kafka.storage.log.metrics.BrokerTopicStats
 import org.junit.jupiter.api.Assertions._
 import org.junit.jupiter.api.{AfterEach, Test}
@@ -113,7 +113,7 @@ class   LogCleanerManagerTest extends Logging {
       tpDir, topicPartition, logDirFailureChannel, config.recordVersion, "", None, time.scheduler)
     val producerStateManager = new ProducerStateManager(topicPartition, tpDir, maxTransactionTimeoutMs, producerStateManagerConfig, time)
     val vortexLog = new VortexLog(logDir, config, segments, time.scheduler, time,topicPartition, logDirFailureChannel)
-    val offsets = new LogLoader(
+    val offsets = new VortexLogLoader(
       vortexLog,
       tpDir,
       tp,

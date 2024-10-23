@@ -361,14 +361,14 @@ public class VortexLogSegment {
             for (VortexRecordWrapper wrapper : batch.records()) {
                 if (wrapper.hasKey()) {
                     String stringKey = StandardCharsets.UTF_8.decode(wrapper.key()).toString();
-                    System.err.println("RECORD: " + stringKey);
+                 //   System.err.println("RECORD: " + stringKey);
                     ++numKeys;
                 }
             }
         }
-        if (numKeys > 0) {
-            System.err.println("Read " + numKeys + " keys");
-        }
+    //    if (numKeys > 0) {
+    //        System.err.println("Read " + numKeys + " keys");
+    //    }
         int numRecords = bundles.stream().mapToInt(VortexRecordBatch::countOrNull).sum();
 
         List<ByteBuffer> byteBuffers = new ArrayList<>(bundles.size());

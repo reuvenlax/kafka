@@ -314,12 +314,12 @@ public class VortexLog {
 
         synchronized (this) {
             if (writeStream == null) {
-                writeStream = vortex.createWriteStream("foo", WriteStream.Type.COMMITTED);
+                writeStream = vortex.getOrCreateWriteStream("foo", this.name(), WriteStream.Type.COMMITTED);
             }
 
             List<VortexRecords.VortexRecord> vortexRecords = toVortexRecords(memoryRecords, logEndOffset);
-            if (!dir.toString().contains("cluster_metadata") && !dir.toString().contains("transaction_state"))
-                System.err.println("APPENDING TO DIR " + this.dir + " RECORDS " + vortexRecords);
+         //   if (!dir.toString().contains("cluster_metadata") && !dir.toString().contains("transaction_state"))
+          //      System.err.println("APPENDING TO DIR " + this.dir + " RECORDS " + vortexRecords);
             vortexLogSegments.activeSegment().onAppend(
                     logEndOffset,
                     lastOffset,
@@ -366,8 +366,8 @@ public class VortexLog {
                 } else if (vortexLogSegment.baseOffset() == maxOffsetMetadata.segmentBaseOffset && !maxOffsetMetadata.messageOffsetOnly()) {
                     maxPosition = Optional.of(maxOffsetMetadata.relativePositionInSegment);
                 }
-                if (!dir.toString().contains("cluster_metadata") && !dir.toString().contains("transaction_state"))
-                    System.err.println("READING FROM DIR " + dir + " WITH MAX POSITION " + maxPosition);
+             //   if (!dir.toString().contains("cluster_metadata") && !dir.toString().contains("transaction_state"))
+              //      System.err.println("READING FROM DIR " + dir + " WITH MAX POSITION " + maxPosition);
                 VortexLogSegment.FetchDataInfoWithLength fetchDataInfoWithLength =
                         vortexLogSegment.readBatches(startOffset, maxBytes, maxPosition, atLeastOne);
                 if (fetchDataInfoWithLength != null) {

@@ -25,9 +25,9 @@ import kafka.common._
 import kafka.log.LogCleaner.{CleanerRecopyPercentMetricName, DeadThreadCountMetricName, MaxBufferUtilizationPercentMetricName, MaxCleanTimeMetricName, MaxCompactionDelayMetricsName}
 import kafka.server.{BrokerReconfigurable, KafkaConfig}
 import kafka.utils.{Logging, Pool}
-import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.{KafkaException, TopicPartition}
 import org.apache.kafka.common.config.ConfigException
-import org.apache.kafka.common.errors.KafkaStorageException
+import org.apache.kafka.common.errors.{KafkaStorageException}
 import org.apache.kafka.common.record.MemoryRecords.RecordFilter
 import org.apache.kafka.common.record.MemoryRecords.RecordFilter.BatchRetention
 import org.apache.kafka.common.record._
@@ -38,7 +38,8 @@ import org.apache.kafka.server.util.ShutdownableThread
 import org.apache.kafka.storage.internals.log.{AbortedTxn, CleanerConfig, LastRecord, LogDirFailureChannel, LogSegmentOffsetOverflowException, OffsetMap, SkimpyOffsetMap, TransactionIndex, VortexLogSegment}
 import org.apache.kafka.storage.internals.utils.Throttler
 
-// import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.{IterableHasAsScala, IteratorHasAsScala}
+
 import scala.collection.mutable.ListBuffer
 import scala.collection.{Iterable, Seq, Set, mutable}
 import scala.util.control.ControlThrowable
@@ -830,8 +831,8 @@ private[log] class Cleaner(val id: Int,
 
       // if we read bytes but didn't get even one complete batch, our I/O buffer is too small, grow it and try again
       // `result.bytesRead` contains bytes from `messagesRead` and any discarded batches.
-     // if (readBuffer.limit() > 0 && result.bytesRead == 0)
-     //   growBuffersOrFail(sourceRecords, position, maxLogMessageSize, records)
+      if (readBuffer.limit() > 0 && result.bytesRead == 0)
+        growBuffersOrFail(sourceRecords, position, maxLogMessageSize, records)
     }
     restoreBuffers()
   }
@@ -850,12 +851,11 @@ private[log] class Cleaner(val id: Int,
    * @param maxLogMessageSize The maximum record size in bytes for the topic
    * @param memoryRecords The memory records in read buffer
    */
-    /*
-  private def growBuffersOrFail(sourceRecords: FileRecords,
+  private def growBuffersOrFail(sourceRecords: VortexLogSegment#FileRecords,
                                 position: Int,
                                 maxLogMessageSize: Int,
                                 memoryRecords: MemoryRecords): Unit = {
-
+/*
     val maxSize = if (readBuffer.capacity >= maxLogMessageSize) {
       val nextBatchSize = memoryRecords.firstBatchSize
       val logDesc = s"log segment ${sourceRecords.file} at position $position"
@@ -873,10 +873,10 @@ private[log] class Cleaner(val id: Int,
       maxLogMessageSize
 
     growBuffers(maxSize)
+
+ */
   }
 
-
-     */
   /**
    * Check if a batch should be discard by cleaned transaction state
    *
@@ -1019,7 +1019,6 @@ private[log] class Cleaner(val id: Int,
    *  @param firstUncleanableOffset The upper(exclusive) offset to clean to
     * @return The estimated last offset for the first segment in segs
     */
-
   private def lastOffsetForFirstSegment(segs: List[VortexLogSegment], firstUncleanableOffset: Long): Long = {
     if (segs.size > 1) {
       /* if there is a next segment, use its base offset as the bounding offset to guarantee we know
@@ -1093,14 +1092,13 @@ private[log] class Cleaner(val id: Int,
                                        maxLogMessageSize: Int,
                                        transactionMetadata: CleanedTransactionMetadata,
                                        stats: CleanerStats): Boolean = {
-   // var position = segment.offsetIndex.lookup(startOffset).position
-   // val maxDesiredMapSize = (map.slots * this.dupBufferLoadFactor).toInt
-    /*
+    var position = segment.offsetIndex.lookup(startOffset).position
+    val maxDesiredMapSize = (map.slots * this.dupBufferLoadFactor).toInt
     while (position < segment.log.sizeInBytes) {
       checkDone(topicPartition)
       readBuffer.clear()
       try {
-     //   segment.log.readInto(readBuffer, position)
+        segment.log.readInto(readBuffer, position)
       } catch {
         case e: Exception =>
           throw new KafkaException(s"Failed to read from segment $segment of partition $topicPartition " +
@@ -1144,10 +1142,9 @@ private[log] class Cleaner(val id: Int,
       stats.indexBytesRead(bytesRead)
 
       // if we didn't read even one complete message, our read buffer may be too small
-    //  if (position == startPosition)
-    //    growBuffersOrFail(segment.log, position, maxLogMessageSize, records)
+      if (position == startPosition)
+        growBuffersOrFail(segment.log, position, maxLogMessageSize, records)
     }
-*/
 
     // In the case of offsets gap, fast forward to latest expected offset in this segment.
     map.updateLatestOffset(nextSegmentStartOffset - 1L)

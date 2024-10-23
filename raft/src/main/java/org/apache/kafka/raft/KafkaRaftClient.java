@@ -1621,6 +1621,7 @@ public final class KafkaRaftClient<T> implements RaftClient<T> {
                     }
                 });
 
+                System.err.println("TRUCATING TO END OFFSET");
                 long truncationOffset = log.truncateToEndOffset(divergingOffsetAndEpoch);
                 logger.info(
                     "Truncated to offset {} from Fetch response from leader {}",

@@ -41,7 +41,7 @@ import org.apache.kafka.server.storage.log.{FetchIsolation, FetchParams}
 import org.apache.kafka.server.util.MockTime
 import org.apache.kafka.storage.internals.checkpoint.OffsetCheckpoints
 import org.apache.kafka.storage.internals.epoch.LeaderEpochFileCache
-import org.apache.kafka.storage.internals.log.{AppendOrigin, CleanerConfig, LogAppendInfo, LogConfig, LogDirFailureChannel, LogLoader, ProducerStateManager, ProducerStateManagerConfig, VerificationGuard, VortexLog, VortexLogSegments}
+import org.apache.kafka.storage.internals.log.{AppendOrigin, CleanerConfig, LogAppendInfo, LogConfig, LogDirFailureChannel, VortexLogLoader, ProducerStateManager, ProducerStateManagerConfig, VerificationGuard, VortexLog, VortexLogSegments}
 import org.apache.kafka.storage.log.metrics.BrokerTopicStats
 import org.junit.jupiter.api.Assertions.{assertEquals, assertFalse, assertTrue}
 import org.junit.jupiter.api.{AfterEach, BeforeEach, Test}
@@ -313,7 +313,7 @@ class PartitionLockTest extends Logging {
           producerStateManagerConfig,
           mockTime
         )
-        val offsets = new LogLoader(
+        val offsets = new VortexLogLoader(
           log.localLog,
           log.dir,
           log.topicPartition,

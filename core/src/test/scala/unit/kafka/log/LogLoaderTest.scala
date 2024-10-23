@@ -31,7 +31,7 @@ import org.apache.kafka.server.common.MetadataVersion
 import org.apache.kafka.server.common.MetadataVersion.IBP_0_11_0_IV0
 import org.apache.kafka.server.util.{MockTime, Scheduler}
 import org.apache.kafka.storage.internals.epoch.LeaderEpochFileCache
-import org.apache.kafka.storage.internals.log.{AbortedTxn, CleanerConfig, EpochEntry, LogConfig, LogDirFailureChannel, LogFileUtils, LogLoader, LogOffsetMetadata, LogStartOffsetIncrementReason, OffsetIndex, ProducerStateManager, ProducerStateManagerConfig, SnapshotFile, VortexLog, VortexLogSegment, VortexLogSegments}
+import org.apache.kafka.storage.internals.log.{AbortedTxn, CleanerConfig, EpochEntry, LogConfig, LogDirFailureChannel, LogFileUtils, VortexLogLoader, LogOffsetMetadata, LogStartOffsetIncrementReason, OffsetIndex, ProducerStateManager, ProducerStateManagerConfig, SnapshotFile, VortexLog, VortexLogSegment, VortexLogSegments}
 import org.apache.kafka.storage.internals.checkpoint.CleanShutdownFileHandler
 import org.apache.kafka.storage.log.metrics.BrokerTopicStats
 import org.junit.jupiter.api.Assertions.{assertDoesNotThrow, assertEquals, assertFalse, assertNotEquals, assertThrows, assertTrue}
@@ -162,7 +162,7 @@ class LogLoaderTest {
           val producerStateManager = new ProducerStateManager(topicPartition, logDir,
             this.maxTransactionTimeoutMs, this.producerStateManagerConfig, time)
           val vortexLog = new VortexLog(logDir, logConfig, segments, time.scheduler, mockTime, topicPartition, logDirFailureChannel)
-          val logLoader = new LogLoader(vortexLog, logDir, topicPartition, config, time.scheduler, time,
+          val logLoader = new VortexLogLoader(vortexLog, logDir, topicPartition, config, time.scheduler, time,
             logDirFailureChannel, hadCleanShutdown, segments, logStartOffset, logRecoveryPoint,
             leaderEpochCache.asJava, producerStateManager, new ConcurrentHashMap[String, Integer], false)
           val offsets = logLoader.load()
@@ -374,7 +374,7 @@ class LogLoaderTest {
       val producerStateManager = new ProducerStateManager(topicPartition, logDir,
         maxTransactionTimeoutMs, producerStateManagerConfig, mockTime)
       val vortexLog = new VortexLog(logDir, log.config, interceptedLogSegments, mockTime.scheduler, mockTime, topicPartition, logDirFailureChannel)
-      val logLoader = new LogLoader(
+      val logLoader = new VortexLogLoader(
         vortexLog,
         logDir,
         topicPartition,
@@ -439,7 +439,7 @@ class LogLoaderTest {
     val leaderEpochCache = UnifiedLog.maybeCreateLeaderEpochCache(
       logDir, topicPartition, logDirFailureChannel, config.recordVersion, "", None, mockTime.scheduler)
     val vortexLog = new VortexLog(logDir, config, segments, mockTime.scheduler, mockTime, topicPartition, logDirFailureChannel)
-    val offsets = new LogLoader(
+    val offsets = new VortexLogLoader(
       vortexLog,
       logDir,
       topicPartition,
@@ -550,7 +550,7 @@ class LogLoaderTest {
     val leaderEpochCache = UnifiedLog.maybeCreateLeaderEpochCache(
       logDir, topicPartition, logDirFailureChannel, config.recordVersion, "", None, mockTime.scheduler)
     val vortexLog = new VortexLog(logDir, config, segments, mockTime.scheduler, mockTime, topicPartition, logDirFailureChannel)
-    val offsets = new LogLoader(
+    val offsets = new VortexLogLoader(
       vortexLog,
       logDir,
       topicPartition,
@@ -606,7 +606,7 @@ class LogLoaderTest {
     val leaderEpochCache = UnifiedLog.maybeCreateLeaderEpochCache(
       logDir, topicPartition, logDirFailureChannel, config.recordVersion, "", None, mockTime.scheduler)
     val vortexLog = new VortexLog(logDir, config, segments, mockTime.scheduler, mockTime, topicPartition, logDirFailureChannel)
-    val offsets = new LogLoader(
+    val offsets = new VortexLogLoader(
       vortexLog,
       logDir,
       topicPartition,
@@ -661,7 +661,7 @@ class LogLoaderTest {
     val leaderEpochCache = UnifiedLog.maybeCreateLeaderEpochCache(
       logDir, topicPartition, logDirFailureChannel, config.recordVersion, "", None, mockTime.scheduler)
     val vortexLog = new VortexLog(logDir, config, segments, mockTime.scheduler, mockTime, topicPartition, logDirFailureChannel)
-    val offsets = new LogLoader(
+    val offsets = new VortexLogLoader(
       vortexLog,
       logDir,
       topicPartition,

@@ -95,27 +95,34 @@ public class VortexClient implements VortexInterface {
         }
     }
 
-    Map<String, Stream> allStreams = new HashMap<>();
+    private static Map<String, Stream> allStreams = new HashMap<>();
+
     @Override
-    public WriteStream createWriteStream(String tableUrn, Type type) {
-        String streamName = UUID.randomUUID().toString();
-        Stream stream = new Stream(streamName, type);
-        allStreams.put(streamName, stream);
+    public WriteStream getOrCreateWriteStream(String tableUrn, String partitionName, Type type) {
+        System.err.println("Creating write stream " + partitionName);
+        Stream stream = new Stream(partitionName, type);
+        allStreams.put(partitionName, stream);
         return stream.getWriteStream();
     }
 
     @Override
     public WriteStream getWriteStream(String streamName) {
-        return allStreams.get(streamName).getWriteStream();
+        return getStream(streamName).getWriteStream();
+    }
+
+    private Stream getStream(String streamName) {
+        synchronized (allStreams) {
+            return allStreams.get(streamName);
+        }
     }
 
     @Override
     public ApiFuture<AppendRowsResponse> appendRows(String streamName, long offset, ProtoRows rows) {
-        return allStreams.get(streamName).appendRows(offset, rows);
+        return getStream(streamName).appendRows(offset, rows);
     }
 
     @Override
      public ProtoRows getRows(String streamName, long startOffset, int maxBytes, long maxOffset, boolean atLeastOne) {
-        return allStreams.get(streamName).getRows((int) startOffset, maxBytes, maxOffset, atLeastOne);
+        return getStream(streamName).getRows((int) startOffset, maxBytes, maxOffset, atLeastOne);
     }
 }

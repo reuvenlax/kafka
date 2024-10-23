@@ -22,7 +22,7 @@ import com.google.cloud.bigquery.storage.v1.WriteStream;
 import com.google.cloud.bigquery.storage.v1.WriteStream.Type;
 
 public interface VortexInterface {
-    WriteStream createWriteStream(String tableUrn, Type type);
+    WriteStream getOrCreateWriteStream(String tableUrn, String partitionName, Type type);
 
     WriteStream getWriteStream(String streamName);
 

@@ -42,7 +42,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
-public class LogLoader {
+public class VortexLogLoader {
 
     private static final String SNAPSHOT_DELETE_SUFFIX = ".checkpoint.deleted";
 
@@ -81,7 +81,7 @@ public class LogLoader {
      * @param numRemainingSegments The remaining segments to be recovered in this log keyed by recovery thread name
      * @param isRemoteLogEnabled Boolean flag to indicate whether the remote storage is enabled or not
      */
-    public LogLoader(
+    public VortexLogLoader(
             VortexLog localLog,
             File dir,
             TopicPartition topicPartition,
@@ -113,7 +113,7 @@ public class LogLoader {
         this.numRemainingSegments = numRemainingSegments;
         this.isRemoteLogEnabled = isRemoteLogEnabled;
         this.logPrefix = "[LogLoader partition=" + topicPartition + ", dir=" + dir.getParent() + "] ";
-        this.logger = new LogContext(logPrefix).logger(LogLoader.class);
+        this.logger = new LogContext(logPrefix).logger(VortexLogLoader.class);
     }
 
     /**

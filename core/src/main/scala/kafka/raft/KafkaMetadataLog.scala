@@ -16,7 +16,7 @@
  */
 package kafka.raft
 
-import kafka.log.UnifiedLog
+import kafka.log.{LocalUnifiedLog}
 import kafka.raft.KafkaMetadataLog.FullTruncation
 import kafka.raft.KafkaMetadataLog.RetentionMsBreach
 import kafka.raft.KafkaMetadataLog.RetentionSizeBreach
@@ -52,7 +52,7 @@ import scala.collection.mutable
 import scala.compat.java8.OptionConverters._
 
 final class KafkaMetadataLog private (
-  val log: UnifiedLog,
+  val log: LocalUnifiedLog,
   time: Time,
   scheduler: Scheduler,
   // Access to this object needs to be synchronized because it is used by the snapshotting thread to notify the
@@ -109,7 +109,7 @@ final class KafkaMetadataLog private (
   }
 
   private def handleAndConvertLogAppendInfo(appendInfo: internals.log.LogAppendInfo): LogAppendInfo = {
-    if (appendInfo.firstOffset != UnifiedLog.UnknownOffset)
+    if (appendInfo.firstOffset != LocalUnifiedLog.UnknownOffset)
       new LogAppendInfo(appendInfo.firstOffset, appendInfo.lastOffset)
     else
       throw new KafkaException(s"Append failed unexpectedly")
@@ -171,6 +171,7 @@ final class KafkaMetadataLog private (
       throw new IllegalArgumentException(s"Attempt to truncate to offset $offset, which is below " +
         s"the current high watermark ${highWatermark.offset}")
     }
+    System.err.println("TRUNCATING")
     log.truncateTo(offset)
   }
 
@@ -181,6 +182,7 @@ final class KafkaMetadataLog private (
           snapshotId.epoch > latestEpoch ||
           (snapshotId.epoch == latestEpoch && snapshotId.offset > endOffset().offset)
         ) =>
+        System.err.println("TRUNCATING FULLY")
         // Truncate the log fully if the latest snapshot is greater than the log end offset
         log.truncateFullyAndStartAt(snapshotId.offset)
 
@@ -588,7 +590,7 @@ object KafkaMetadataLog extends Logging {
       )
     }
 
-    val log = UnifiedLog(
+    val log = LocalUnifiedLog(
       dir = dataDir,
       config = defaultLogConfig,
       logStartOffset = 0L,
@@ -628,7 +630,7 @@ object KafkaMetadataLog extends Logging {
   }
 
   private def recoverSnapshots(
-    log: UnifiedLog
+    log: LocalUnifiedLog
   ): mutable.TreeMap[OffsetAndEpoch, Option[FileRawSnapshotReader]] = {
     val snapshotsToRetain = mutable.TreeMap.empty[OffsetAndEpoch, Option[FileRawSnapshotReader]]
     val snapshotsToDelete = mutable.Buffer.empty[SnapshotPath]

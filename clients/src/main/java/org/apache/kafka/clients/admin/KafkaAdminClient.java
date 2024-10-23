@@ -4624,8 +4624,9 @@ public class KafkaAdminClient extends AdminClient {
 
             @Override
             DescribeQuorumRequest.Builder createRequest(int timeoutMs) {
-                return new Builder(DescribeQuorumRequest.singletonRequest(
+                DescribeQuorumRequest.Builder builder = new Builder(DescribeQuorumRequest.singletonRequest(
                         new TopicPartition(CLUSTER_METADATA_TOPIC_NAME, CLUSTER_METADATA_TOPIC_PARTITION.partition())));
+                return builder;
             }
 
             @Override
